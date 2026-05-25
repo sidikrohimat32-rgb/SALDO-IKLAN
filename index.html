@@ -13,13 +13,13 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-blue-400">📊 Ads Balance Monitor</h1>
-                <p class="text-gray-400 text-sm mt-1">Pantau sisa saldo dan estimasi umur iklan agar tidak kecolongan off.</p>
+                <p class="text-gray-400 text-sm mt-1">Pantau sisa saldo dengan kalkulasi otomatis PPN 11% pada spend harian.</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="downloadReport()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2px px-4 rounded-lg shadow transition duration-200 flex items-center gap-2 cursor-pointer h-11">
+                <button onclick="downloadReport()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition duration-200 flex items-center gap-2 cursor-pointer h-11">
                     💾 Download Gambar
                 </button>
-                <button onclick="clearAllData()" class="bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 font-semibold py-2px px-4 rounded-lg transition duration-200 cursor-pointer h-11">
+                <button onclick="clearAllData()" class="bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 font-semibold py-2 px-4 rounded-lg transition duration-200 cursor-pointer h-11">
                     🗑️ Hapus Semua Data
                 </button>
             </div>
@@ -27,7 +27,7 @@
 
         <div id="report-table" class="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700 p-4 md:p-6">
             <div class="mb-4 flex justify-between items-center border-b border-gray-700 pb-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Laporan Saldo & Estimasi Iklan</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Laporan Saldo & Estimasi Iklan (Termasuk PPN 11%)</span>
                 <span id="current-date" class="text-sm text-gray-400 font-mono"></span>
             </div>
             
@@ -36,8 +36,8 @@
                     <thead>
                         <tr class="border-b border-gray-700 text-gray-400 text-sm">
                             <th class="pb-3 pt-2 font-semibold">Nama Akun Iklan</th>
-                            <th class="pb-3 pt-2 font-semibold w-48">Sisa Saldo (Rp)</th>
-                            <th class="pb-3 pt-2 font-semibold w-48">Spend Kemarin (Rp)</th>
+                            <th class="pb-3 pt-2 font-semibold w-56">Sisa Saldo</th>
+                            <th class="pb-3 pt-2 font-semibold w-56">Spend Kemarin <span class="text-xs text-amber-400 font-normal block md:inline md:ml-1">(+ PPN 11%)</span></th>
                             <th class="pb-3 pt-2 font-semibold text-center w-40">Estimasi Sisa Hari</th>
                         </tr>
                     </thead>
@@ -49,7 +49,7 @@
     </div>
 
     <script>
-        // Daftar akun iklan sesuai request
+        // Daftar akun iklan
         const accountNames = [
             "NISA TESTER",
             "KANTOR MJO 1372 (RAHASIA CANTIK)",
@@ -69,100 +69,70 @@
         const tableBody = document.getElementById('ads-table-body');
         
         accountNames.forEach((name, index) => {
-            // Ambil data lama jika ada
             const savedBalance = localStorage.getItem(`balance_${index}`) || '';
             const savedSpend = localStorage.getItem(`spend_${index}`) || '';
+
+            const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
+            const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
 
             const row = document.createElement('tr');
             row.className = "hover:bg-gray-700/30 transition-colors";
             row.innerHTML = `
                 <td class="py-4 pr-3 font-medium text-gray-200">${name}</td>
                 <td class="py-4 pr-3">
-                    <input type="number" id="balance_${index}" value="${savedBalance}" oninput="calculateDays(${index})" placeholder="0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                    <input type="text" id="balance_${index}" value="${formattedBalance}" oninput="handleInput(${index})" placeholder="Rp 0" 
+                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
                 </td>
                 <td class="py-4 pr-3">
-                    <input type="number" id="spend_${index}" value="${savedSpend}" oninput="calculateDays(${index})" placeholder="0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                    <input type="text" id="spend_${index}" value="${formattedSpend}" oninput="handleInput(${index})" placeholder="Rp 0" 
+                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
                 </td>
                 <td class="py-4 text-center font-bold text-sm" id="result_${index}">-</td>
             `;
             tableBody.appendChild(row);
             
-            // Hitung ulang jika ada data yang ter-load
             if(savedBalance && savedSpend) {
-                calculateDays(index);
+                calculateDays(index, parseFloat(savedBalance), parseFloat(savedSpend));
             }
         });
 
-        // Fungsi Hitung Estimasi Hari & Auto Save
-        function calculateDays(index) {
+        // Fungsi memformat angka menjadi format Rupiah string
+        function formatRupiahValue(value) {
+            const numberString = value.replace(/[^,\d]/g, '').toString();
+            const split = numberString.split(',');
+            const sisa = split[0].length % 3;
+            let rupiah = split[0].substr(0, sisa);
+            const ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+            if (ribuan) {
+                const separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+
+            rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+            return rupiah ? 'Rp ' + rupiah : '';
+        }
+
+        // Fungsi mengubah string Rupiah kembali ke Angka Murni
+        function cleanToNumber(value) {
+            return parseFloat(value.replace(/[^0-9]/g, '')) || 0;
+        }
+
+        // Fungsi menghandle input secara real-time
+        function handleInput(index) {
             const balanceInput = document.getElementById(`balance_${index}`);
             const spendInput = document.getElementById(`spend_${index}`);
-            const resultCell = document.getElementById(`result_${index}`);
 
-            const balance = parseFloat(balanceInput.value) || 0;
-            const spend = parseFloat(spendInput.value) || 0;
+            const rawBalance = cleanToNumber(balanceInput.value);
+            const rawSpend = cleanToNumber(spendInput.value);
 
-            // Simpan ke LocalStorage otomatis saat diketik
-            localStorage.setItem(`balance_${index}`, balanceInput.value);
-            localStorage.setItem(`spend_${index}`, spendInput.value);
+            balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance.toString()) : '';
+            spendInput.value = spendInput.value ? formatRupiahValue(rawSpend.toString()) : '';
 
-            if (spend <= 0) {
-                resultCell.innerText = "-";
-                resultCell.className = "py-4 text-center font-bold text-gray-400";
-                return;
-            }
+            localStorage.setItem(`balance_${index}`, rawBalance ? rawBalance : '');
+            localStorage.setItem(`spend_${index}`, rawSpend ? rawSpend : '');
 
-            const daysLeft = balance / spend;
-            
-            // Atur warna indikator biar gampang ngeh mana yang kritis
-            if (daysLeft <= 1) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi 🚨`;
-                resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
-            } else if (daysLeft <= 3) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ⚠️`;
-                resultCell.className = "py-4 text-center font-bold text-yellow-400";
-            } else {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ✅`;
-                resultCell.className = "py-4 text-center font-bold text-green-400";
-            }
+            calculateDays(index, rawBalance, rawSpend);
         }
 
-        // Fungsi Download Tabel sebagai Gambar
-        function downloadReport() {
-            const element = document.getElementById('report-table');
-            
-            // Opsi optimasi visual sebelum dicapture
-            const options = {
-                backgroundColor: '#1f2937', // Menjaga warna bg asli gray-800
-                scale: 2, // Menaikkan resolusi gambar hasil download
-                logging: false,
-                useCORS: true
-            };
-
-            html2canvas(element, options).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
-        }
-
-        // Fungsi Hapus Semua Data di Tabel & LocalStorage
-        function clearAllData() {
-            if (confirm("Apakah kamu yakin ingin menghapus semua data input saldo dan spend?")) {
-                accountNames.forEach((_, index) => {
-                    document.getElementById(`balance_${index}`).value = '';
-                    document.getElementById(`spend_${index}`).value = '';
-                    document.getElementById(`result_${index}`).innerText = '-';
-                    document.getElementById(`result_${index}`).className = "py-4 text-center font-bold text-gray-400";
-                    
-                    localStorage.removeItem(`balance_${index}`);
-                    localStorage.removeItem(`spend_${index}`);
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+        // Fungsi Hitung Estimasi Hari (Sekarang Meng
