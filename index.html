@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pantau Saldo Iklan</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
@@ -36,8 +36,8 @@
                     <thead>
                         <tr class="border-b border-gray-700 text-gray-400 text-sm">
                             <th class="pb-3 pt-2 font-semibold">Nama Akun Iklan</th>
-                            <th class="pb-3 pt-2 font-semibold w-56">Sisa Saldo</th>
-                            <th class="pb-3 pt-2 font-semibold w-56">Spend Kemarin <span class="text-xs text-amber-400 font-normal block md:inline md:ml-1">(+ PPN 11%)</span></th>
+                            <th class="pb-3 pt-2 font-semibold w-48">Sisa Saldo</th>
+                            <th class="pb-3 pt-2 font-semibold w-48">Spend Kemarin <span class="text-xs text-amber-400 font-normal block md:inline md:ml-1">(+ PPN 11%)</span></th>
                             <th class="pb-3 pt-2 font-semibold text-center w-40">Estimasi Sisa Hari</th>
                         </tr>
                     </thead>
@@ -49,7 +49,7 @@
     </div>
 
     <script>
-        // Daftar nama akun iklan lengkap sesuai request semula
+        // Daftar nama akun iklan lengkap
         const accountNames = [
             "NISA TESTER",
             "KANTOR MJO 1372 (RAHASIA CANTIK)",
@@ -61,7 +61,7 @@
             "KANTOR MJO 0434 (RACOEN)"
         ];
 
-        // Memastikan dokumen HTML sudah siap sepenuhnya sebelum memuat baris tabel
+        // Pastikan HTML ter-load sempurna agar script tidak gagal memuat baris tabel
         document.addEventListener("DOMContentLoaded", () => {
             // Tampilkan tanggal hari ini
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -70,18 +70,18 @@
             const tableBody = document.getElementById('ads-table-body');
             
             accountNames.forEach((name, index) => {
-                // Ambil data mentah (angka) dari LocalStorage
+                // Ambil data mentah angka dari LocalStorage
                 const savedBalance = localStorage.getItem(`balance_${index}`) || '';
                 const savedSpend = localStorage.getItem(`spend_${index}`) || '';
 
-                // Format ke rupiah untuk tampilan awal
+                // Format ke rupiah untuk tampilan layar
                 const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
                 const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
 
                 const row = document.createElement('tr');
                 row.className = "hover:bg-gray-700/30 transition-colors";
                 row.innerHTML = `
-                    <td class="py-4 pr-3 font-medium text-gray-200 text-sm md:text-base">${name}</td>
+                    <td class="py-4 pr-3 font-medium text-gray-200">${name}</td>
                     <td class="py-4 pr-3">
                         <input type="text" id="balance_${index}" value="${formattedBalance}" oninput="handleInput(${index})" placeholder="Rp 0" 
                             class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
@@ -101,7 +101,7 @@
             });
         });
 
-        // Fungsi memformat angka menjadi format Rupiah string (Accounting Style)
+        // Fungsi memformat angka menjadi string format Rupiah (Excel style)
         function formatRupiahValue(value) {
             const numberString = value.replace(/[^,\d]/g, '').toString();
             const split = numberString.split(',');
@@ -123,7 +123,7 @@
             return parseFloat(value.replace(/[^0-9]/g, '')) || 0;
         }
 
-        // Fungsi menghandle input secara real-time saat diketik
+        // Fungsi menghandle input secara real-time saat mengetik
         function handleInput(index) {
             const balanceInput = document.getElementById(`balance_${index}`);
             const spendInput = document.getElementById(`spend_${index}`);
@@ -134,7 +134,7 @@
             balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance.toString()) : '';
             spendInput.value = spendInput.value ? formatRupiahValue(rawSpend.toString()) : '';
 
-            // Simpan angka mentahnya ke LocalStorage agar saat di-refresh tidak hilang
+            // Simpan data angka murninya ke LocalStorage
             localStorage.setItem(`balance_${index}`, rawBalance ? rawBalance : '');
             localStorage.setItem(`spend_${index}`, rawSpend ? rawSpend : '');
 
@@ -151,7 +151,7 @@
                 return;
             }
 
-            // Rumus: Spend + PPN 11%
+            // Spend + PPN 11%
             const totalSpendWithTax = spend * 1.11;
             const daysLeft = balance / totalSpendWithTax;
             
@@ -180,26 +180,4 @@
 
             html2canvas(element, options).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
-        }
-
-        // Fungsi Hapus Semua Data dari Layar dan Memory Browser
-        function clearAllData() {
-            if (confirm("Apakah kamu yakin ingin menghapus semua data input saldo dan spend?")) {
-                accountNames.forEach((_, index) => {
-                    document.getElementById(`balance_${index}`).value = '';
-                    document.getElementById(`spend_${index}`).value = '';
-                    document.getElementById(`result_${index}`).innerText = '-';
-                    document.getElementById(`result_${index}`).className = "py-4 text-center font-bold text-gray-400";
-                    
-                    localStorage.removeItem(`balance_${index}`);
-                    localStorage.removeItem(`spend_${index}`);
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,1
