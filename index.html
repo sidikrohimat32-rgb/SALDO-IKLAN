@@ -137,7 +137,7 @@
             calculateDays(index, rawBalance, rawSpend);
         }
 
-        // Fungsi Hitung Otomatis PPN 11% & Aturan Kustom Estimasi Hari
+        // Fungsi Hitung Otomatis PPN 11% & Aturan Baru Estimasi Hari (<2, 2-3, >3)
         function calculateDays(index, balance, spend) {
             const taxSpendCell = document.getElementById(`tax_spend_${index}`);
             const resultCell = document.getElementById(`result_${index}`);
@@ -154,11 +154,11 @@
 
             const daysLeft = balance / totalSpendWithTax;
             
-            // Logika kustom indikator tingkat kritis
-            if (daysLeft <= 1.2) {
+            // Logika indikator baru yang diminta
+            if (daysLeft <= 2.0) {
                 resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Segera Isi! 🚨)`;
                 resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
-            } else if (daysLeft > 1.2 && daysLeft <= 3.0) {
+            } else if (daysLeft > 2.0 && daysLeft <= 3.0) {
                 resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Hati-Hati ⚠️)`;
                 resultCell.className = "py-4 text-center font-bold text-yellow-400";
             } else {
@@ -171,7 +171,6 @@
         function downloadReport() {
             const element = document.getElementById('report-table');
             
-            // Menggunakan modernScreenshot untuk menangkap elemen secara instan dan akurat
             modernScreenshot.domToPng(element, {
                 quality: 0.95,
                 scale: 2
