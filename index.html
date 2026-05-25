@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pantau Saldo Iklan</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@3"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
@@ -49,7 +49,7 @@
     </div>
 
     <script>
-        // Daftar akun iklan
+        // Daftar nama akun iklan lengkap sesuai request semula
         const accountNames = [
             "NISA TESTER",
             "KANTOR MJO 1372 (RAHASIA CANTIK)",
@@ -61,42 +61,47 @@
             "KANTOR MJO 0434 (RACOEN)"
         ];
 
-        // Tampilkan tanggal hari ini
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', options);
+        // Memastikan dokumen HTML sudah siap sepenuhnya sebelum memuat baris tabel
+        document.addEventListener("DOMContentLoaded", () => {
+            // Tampilkan tanggal hari ini
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', options);
 
-        // Inisialisasi & Load data dari LocalStorage
-        const tableBody = document.getElementById('ads-table-body');
-        
-        accountNames.forEach((name, index) => {
-            const savedBalance = localStorage.getItem(`balance_${index}`) || '';
-            const savedSpend = localStorage.getItem(`spend_${index}`) || '';
-
-            const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
-            const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
-
-            const row = document.createElement('tr');
-            row.className = "hover:bg-gray-700/30 transition-colors";
-            row.innerHTML = `
-                <td class="py-4 pr-3 font-medium text-gray-200">${name}</td>
-                <td class="py-4 pr-3">
-                    <input type="text" id="balance_${index}" value="${formattedBalance}" oninput="handleInput(${index})" placeholder="Rp 0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
-                </td>
-                <td class="py-4 pr-3">
-                    <input type="text" id="spend_${index}" value="${formattedSpend}" oninput="handleInput(${index})" placeholder="Rp 0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
-                </td>
-                <td class="py-4 text-center font-bold text-sm" id="result_${index}">-</td>
-            `;
-            tableBody.appendChild(row);
+            const tableBody = document.getElementById('ads-table-body');
             
-            if(savedBalance && savedSpend) {
-                calculateDays(index, parseFloat(savedBalance), parseFloat(savedSpend));
-            }
+            accountNames.forEach((name, index) => {
+                // Ambil data mentah (angka) dari LocalStorage
+                const savedBalance = localStorage.getItem(`balance_${index}`) || '';
+                const savedSpend = localStorage.getItem(`spend_${index}`) || '';
+
+                // Format ke rupiah untuk tampilan awal
+                const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
+                const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-gray-700/30 transition-colors";
+                row.innerHTML = `
+                    <td class="py-4 pr-3 font-medium text-gray-200 text-sm md:text-base">${name}</td>
+                    <td class="py-4 pr-3">
+                        <input type="text" id="balance_${index}" value="${formattedBalance}" oninput="handleInput(${index})" placeholder="Rp 0" 
+                            class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
+                    </td>
+                    <td class="py-4 pr-3">
+                        <input type="text" id="spend_${index}" value="${formattedSpend}" oninput="handleInput(${index})" placeholder="Rp 0" 
+                            class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
+                    </td>
+                    <td class="py-4 text-center font-bold text-sm" id="result_${index}">-</td>
+                `;
+                tableBody.appendChild(row);
+                
+                // Hitung ulang jika ada data tersimpan sebelumnya
+                if(savedBalance && savedSpend) {
+                    calculateDays(index, parseFloat(savedBalance), parseFloat(savedSpend));
+                }
+            });
         });
 
-        // Fungsi memformat angka menjadi format Rupiah string
+        // Fungsi memformat angka menjadi format Rupiah string (Accounting Style)
         function formatRupiahValue(value) {
             const numberString = value.replace(/[^,\d]/g, '').toString();
             const split = numberString.split(',');
@@ -113,12 +118,12 @@
             return rupiah ? 'Rp ' + rupiah : '';
         }
 
-        // Fungsi mengubah string Rupiah kembali ke Angka Murni
+        // Fungsi mengubah string Rupiah kembali ke Angka Murni untuk kalkulasi
         function cleanToNumber(value) {
             return parseFloat(value.replace(/[^0-9]/g, '')) || 0;
         }
 
-        // Fungsi menghandle input secara real-time
+        // Fungsi menghandle input secara real-time saat diketik
         function handleInput(index) {
             const balanceInput = document.getElementById(`balance_${index}`);
             const spendInput = document.getElementById(`spend_${index}`);
@@ -129,10 +134,72 @@
             balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance.toString()) : '';
             spendInput.value = spendInput.value ? formatRupiahValue(rawSpend.toString()) : '';
 
+            // Simpan angka mentahnya ke LocalStorage agar saat di-refresh tidak hilang
             localStorage.setItem(`balance_${index}`, rawBalance ? rawBalance : '');
             localStorage.setItem(`spend_${index}`, rawSpend ? rawSpend : '');
 
             calculateDays(index, rawBalance, rawSpend);
         }
 
-        // Fungsi Hitung Estimasi Hari (Sekarang Meng
+        // Fungsi Hitung Estimasi Hari (Termasuk PPN 11%)
+        function calculateDays(index, balance, spend) {
+            const resultCell = document.getElementById(`result_${index}`);
+
+            if (spend <= 0) {
+                resultCell.innerText = "-";
+                resultCell.className = "py-4 text-center font-bold text-gray-400";
+                return;
+            }
+
+            // Rumus: Spend + PPN 11%
+            const totalSpendWithTax = spend * 1.11;
+            const daysLeft = balance / totalSpendWithTax;
+            
+            // Indikator Warna Alarm Kritis
+            if (daysLeft <= 1) {
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi 🚨`;
+                resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
+            } else if (daysLeft <= 3) {
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ⚠️`;
+                resultCell.className = "py-4 text-center font-bold text-yellow-400";
+            } else {
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ✅`;
+                resultCell.className = "py-4 text-center font-bold text-green-400";
+            }
+        }
+
+        // Fungsi Download Tabel sebagai Gambar
+        function downloadReport() {
+            const element = document.getElementById('report-table');
+            const options = {
+                backgroundColor: '#1f2937',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            };
+
+            html2canvas(element, options).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Fungsi Hapus Semua Data dari Layar dan Memory Browser
+        function clearAllData() {
+            if (confirm("Apakah kamu yakin ingin menghapus semua data input saldo dan spend?")) {
+                accountNames.forEach((_, index) => {
+                    document.getElementById(`balance_${index}`).value = '';
+                    document.getElementById(`spend_${index}`).value = '';
+                    document.getElementById(`result_${index}`).innerText = '-';
+                    document.getElementById(`result_${index}`).className = "py-4 text-center font-bold text-gray-400";
+                    
+                    localStorage.removeItem(`balance_${index}`);
+                    localStorage.removeItem(`spend_${index}`);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
