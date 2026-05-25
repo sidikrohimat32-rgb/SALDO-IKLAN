@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pantau Saldo Iklan</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/modern-screenshot"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
 
@@ -50,7 +50,7 @@
     </div>
 
     <script>
-        // Daftar akun iklan sesuai request
+        // Daftar akun iklan
         const accountNames = [
             "NISA TESTER",
             "KANTOR MJO 1372 (RAHASIA CANTIK)",
@@ -167,30 +167,25 @@
             }
         }
 
-        // Fungsi Perbaikan Download Gambar (Kompatibel dengan Tailwind v4)
+        // Fungsi Download Gambar Menggunakan Library Baru (Anti Gagal & Ringan)
         function downloadReport() {
             const element = document.getElementById('report-table');
             
-            // Memberikan sedikit jeda waktu pemicu (async) agar tidak macet oleh engine render Tailwind
-            setTimeout(() => {
-                const options = {
-                    backgroundColor: '#1f2937', 
-                    scale: 2, 
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true
-                };
-
-                html2canvas(element, options).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                }).catch(err => {
-                    console.error("Gagal mendownload gambar:", err);
-                    alert("Ada kendala sistem browser saat memproses gambar. Coba refresh halaman lalu klik kembali.");
-                });
-            }, 100);
+            // Menggunakan modernScreenshot untuk menangkap elemen secara instan dan akurat
+            modernScreenshot.domToPng(element, {
+                quality: 0.95,
+                scale: 2
+            })
+            .then(dataUrl => {
+                const link = document.createElement('a');
+                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = dataUrl;
+                link.click();
+            })
+            .catch(err => {
+                console.error("Gagal mendownload gambar:", err);
+                alert("Ada gangguan eksternal pada browser. Silakan coba kembali beberapa saat lagi.");
+            });
         }
 
         // Fungsi Hapus Semua Data
