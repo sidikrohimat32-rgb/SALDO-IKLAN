@@ -149,14 +149,12 @@
                 return;
             }
 
-            // Hitung nilai spend setelah ditambah PPN 11%
             const totalSpendWithTax = Math.round(spend * 1.11);
             taxSpendCell.innerText = formatRupiahValue(totalSpendWithTax.toString());
 
-            // Hitung sisa hari
             const daysLeft = balance / totalSpendWithTax;
             
-            // Logika kustom indikator baru sesuai arahan user
+            // Logika kustom indikator tingkat kritis
             if (daysLeft <= 1.2) {
                 resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Segera Isi! 🚨)`;
                 resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
@@ -169,22 +167,30 @@
             }
         }
 
-        // Fungsi Download Tabel sebagai Gambar
+        // Fungsi Perbaikan Download Gambar (Kompatibel dengan Tailwind v4)
         function downloadReport() {
             const element = document.getElementById('report-table');
-            const options = {
-                backgroundColor: '#1f2937', 
-                scale: 2, 
-                logging: false,
-                useCORS: true
-            };
+            
+            // Memberikan sedikit jeda waktu pemicu (async) agar tidak macet oleh engine render Tailwind
+            setTimeout(() => {
+                const options = {
+                    backgroundColor: '#1f2937', 
+                    scale: 2, 
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                };
 
-            html2canvas(element, options).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
+                html2canvas(element, options).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }).catch(err => {
+                    console.error("Gagal mendownload gambar:", err);
+                    alert("Ada kendala sistem browser saat memproses gambar. Coba refresh halaman lalu klik kembali.");
+                });
+            }, 100);
         }
 
         // Fungsi Hapus Semua Data
