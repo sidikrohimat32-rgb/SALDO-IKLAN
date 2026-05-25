@@ -39,7 +39,7 @@
                             <th class="pb-3 pt-2 font-semibold w-44 text-right">Sisa Saldo</th>
                             <th class="pb-3 pt-2 font-semibold w-44 text-right">Spend Kemarin</th>
                             <th class="pb-3 pt-2 font-semibold w-44 text-right text-amber-400">Spend + PPN 11%</th>
-                            <th class="pb-3 pt-2 font-semibold text-center w-40">Estimasi Sisa Hari</th>
+                            <th class="pb-3 pt-2 font-semibold text-center w-48">Estimasi Sisa Hari</th>
                         </tr>
                     </thead>
                     <tbody id="ads-table-body" class="divide-y divide-gray-700/50">
@@ -70,11 +70,9 @@
         const tableBody = document.getElementById('ads-table-body');
         
         accountNames.forEach((name, index) => {
-            // Ambil data angka murni lama jika ada
             const savedBalance = localStorage.getItem(`balance_${index}`) || '';
             const savedSpend = localStorage.getItem(`spend_${index}`) || '';
 
-            // Format ke Rupiah untuk tampilan awal di layar
             const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
             const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
 
@@ -95,7 +93,6 @@
             `;
             tableBody.appendChild(row);
             
-            // Hitung ulang jika ada data yang ter-load
             if(savedBalance && savedSpend) {
                 calculateDays(index, parseFloat(savedBalance), parseFloat(savedSpend));
             }
@@ -131,18 +128,16 @@
             const rawBalance = cleanToNumber(balanceInput.value);
             const rawSpend = cleanToNumber(spendInput.value);
 
-            // Pasang format mata uang mask saat mengetik
             balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance.toString()) : '';
             spendInput.value = spendInput.value ? formatRupiahValue(rawSpend.toString()) : '';
 
-            // Simpan angka murninya ke LocalStorage agar saat refresh tidak hilang
             localStorage.setItem(`balance_${index}`, rawBalance ? rawBalance : '');
             localStorage.setItem(`spend_${index}`, rawSpend ? rawSpend : '');
 
             calculateDays(index, rawBalance, rawSpend);
         }
 
-        // Fungsi Hitung Otomatis PPN 11% & Estimasi Hari
+        // Fungsi Hitung Otomatis PPN 11% & Aturan Kustom Estimasi Hari
         function calculateDays(index, balance, spend) {
             const taxSpendCell = document.getElementById(`tax_spend_${index}`);
             const resultCell = document.getElementById(`result_${index}`);
@@ -156,22 +151,20 @@
 
             // Hitung nilai spend setelah ditambah PPN 11%
             const totalSpendWithTax = Math.round(spend * 1.11);
-            
-            // Tampilkan hasil spend + PPN di kolom baru dengan format Rp
             taxSpendCell.innerText = formatRupiahValue(totalSpendWithTax.toString());
 
-            // Hitung pembagian sisa hari dari nominal real setelah pajak
+            // Hitung sisa hari
             const daysLeft = balance / totalSpendWithTax;
             
-            // Atur warna indikator biar gampang ngeh mana yang kritis
-            if (daysLeft <= 1) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi 🚨`;
+            // Logika kustom indikator baru sesuai arahan user
+            if (daysLeft <= 1.2) {
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Segera Isi! 🚨)`;
                 resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
-            } else if (daysLeft <= 3) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ⚠️`;
+            } else if (daysLeft > 1.2 && daysLeft <= 3.0) {
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Hati-Hati ⚠️)`;
                 resultCell.className = "py-4 text-center font-bold text-yellow-400";
             } else {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari Lagi ✅`;
+                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Aman ✅)`;
                 resultCell.className = "py-4 text-center font-bold text-green-400";
             }
         }
@@ -179,7 +172,6 @@
         // Fungsi Download Tabel sebagai Gambar
         function downloadReport() {
             const element = document.getElementById('report-table');
-            
             const options = {
                 backgroundColor: '#1f2937', 
                 scale: 2, 
@@ -195,7 +187,7 @@
             });
         }
 
-        // Fungsi Hapus Semua Data di Tabel & LocalStorage
+        // Fungsi Hapus Semua Data
         function clearAllData() {
             if (confirm("Apakah kamu yakin ingin menghapus semua data input saldo dan spend?")) {
                 accountNames.forEach((_, index) => {
