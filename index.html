@@ -19,7 +19,7 @@
                 <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight">
                     📊 Ads Balance Monitor
                 </h1>
-                <p class="text-gray-400 text-sm mt-2">Pantau sisa saldo dan estimasi umur iklan. <br/>Kalkulasi berdasarkan: <code class="bg-gray-900 text-amber-300 px-2 py-0.5 rounded text-xs">Saldo / (Spend + PPN Manual)</code></p>
+                <p class="text-gray-400 text-sm mt-2">Pantau sisa saldo dan estimasi umur iklan. <br/>Kalkulasi berdasarkan: <code class="bg-gray-900 text-amber-300 px-2 py-0.5 rounded text-xs">Saldo / (Spend + Persentase PPN)</code></p>
                 <div class="mt-3 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     <span>📅 <span id="current-date"></span></span>
                 </div>
@@ -45,7 +45,7 @@
             {
                 id: "group1",
                 title: "Tim Nisa, Daily & Findurfav",
-                theme: "blue", // Aksen warna tabel
+                theme: "blue",
                 accounts: [
                     "NISA TESTER",
                     "KANTOR MJO 1372 (RAHASIA CANTIK)",
@@ -78,7 +78,6 @@
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', options);
 
-        // Fungsi membuat ID aman dari nama akun (menghilangkan spasi dan karakter khusus)
         function getSafeId(name) {
             return name.replace(/[^a-zA-Z0-9]/g, '_');
         }
@@ -88,13 +87,11 @@
         // Fungsi Render Tabel Berdasarkan Grup
         function renderTables() {
             accountGroups.forEach(group => {
-                // Tentukan warna aksen berdasarkan theme
                 let headerColor, borderColor, icon;
                 if(group.theme === 'blue') { headerColor = 'text-blue-400'; borderColor = 'border-blue-500/30'; icon = '🔹'; }
                 else if(group.theme === 'amber') { headerColor = 'text-amber-400'; borderColor = 'border-amber-500/30'; icon = '🔸'; }
                 else { headerColor = 'text-purple-400'; borderColor = 'border-purple-500/30'; icon = '🔮'; }
 
-                // Buat Card HTML untuk tiap grup
                 const groupHTML = `
                     <div class="bg-gray-800/80 rounded-xl overflow-hidden border border-gray-700/60 shadow-md">
                         <div class="bg-gray-800 px-5 py-3 border-b border-gray-700/80 flex items-center gap-2">
@@ -108,13 +105,13 @@
                                         <th class="pb-2 pt-2 px-3 font-semibold">Nama Akun</th>
                                         <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Saldo Saat Ini</th>
                                         <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Spend Iklan</th>
-                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Biaya PPN</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold w-24 text-center">PPN (%)</th>
                                         <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right ${headerColor}">Total Harian</th>
                                         <th class="pb-2 pt-2 px-3 font-semibold text-center w-48">Estimasi Sisa</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-700/30" id="tbody_${group.id}">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -126,14 +123,12 @@
                 group.accounts.forEach(accountName => {
                     const safeId = getSafeId(accountName);
                     
-                    // Ambil data tersimpan (jika ada)
                     const savedBalance = localStorage.getItem(`balance_${safeId}`) || '';
                     const savedSpend = localStorage.getItem(`spend_${safeId}`) || '';
-                    const savedTax = localStorage.getItem(`tax_${safeId}`) || ''; // Input PPN Baru
+                    const savedTax = localStorage.getItem(`tax_${safeId}`) || '11'; // Default PPN 11%
 
                     const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
                     const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
-                    const formattedTax = savedTax ? formatRupiahValue(savedTax) : '';
 
                     const rowHTML = `
                         <tr class="hover:bg-gray-700/20 transition-colors group">
@@ -147,8 +142,11 @@
                                     class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
                             </td>
                             <td class="py-3 px-2">
-                                <input type="text" id="tax_${safeId}" value="${formattedTax}" oninput="handleInput('${safeId}')" placeholder="Rp 0" 
-                                    class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
+                                <div class="relative flex items-center justify-center">
+                                    <input type="text" id="tax_${safeId}" value="${savedTax}" oninput="handleInput('${safeId}')" placeholder="11" 
+                                        class="w-16 bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 pr-5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
+                                    <span class="absolute right-3 top-1.5 text-gray-500 text-xs font-bold pointer-events-none">%</span>
+                                </div>
                             </td>
                             <td class="py-3 px-2 text-right font-mono text-sm font-semibold text-gray-300" id="total_spend_${safeId}">-</td>
                             <td class="py-3 px-3 text-center font-bold text-sm" id="result_${safeId}">-</td>
@@ -156,21 +154,20 @@
                     `;
                     tbody.insertAdjacentHTML('beforeend', rowHTML);
 
-                    // Kalkulasi awal saat halaman dimuat
                     if(savedBalance || savedSpend || savedTax) {
-                        calculateDays(safeId, parseFloat(savedBalance||0), parseFloat(savedSpend||0), parseFloat(savedTax||0));
+                        calculateDays(safeId, cleanToNumber(savedBalance), cleanToNumber(savedSpend), parseFloat(savedTax) || 0);
                     }
                 });
             });
         }
 
-        // Panggil fungsi render untuk menggambar struktur HTML
         renderTables();
 
         // ================= FUNGSI FORMAT & KALKULASI ================= //
 
         function formatRupiahValue(value) {
             const numberString = value.toString().replace(/[^,\d]/g, '');
+            if(!numberString) return '';
             const split = numberString.split(',');
             const sisa = split[0].length % 3;
             let rupiah = split[0].substr(0, sisa);
@@ -180,57 +177,57 @@
                 const separator = sisa ? '.' : '';
                 rupiah += separator + ribuan.join('.');
             }
-            rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-            return rupiah ? 'Rp ' + rupiah : '';
+            return 'Rp ' + rupiah;
         }
 
         function cleanToNumber(value) {
             return parseFloat(value.toString().replace(/[^0-9]/g, '')) || 0;
         }
 
-        // Menangani input ketikan dan menyimpan ke LocalStorage
         function handleInput(safeId) {
             const balanceInput = document.getElementById(`balance_${safeId}`);
             const spendInput = document.getElementById(`spend_${safeId}`);
-            const taxInput = document.getElementById(`tax_${safeId}`); // Input PPN
+            const taxInput = document.getElementById(`tax_${safeId}`); 
 
             const rawBalance = cleanToNumber(balanceInput.value);
             const rawSpend = cleanToNumber(spendInput.value);
-            const rawTax = cleanToNumber(taxInput.value);
+            
+            // Format input persen agar hanya bisa menerima angka dan desimal
+            let rawTaxString = taxInput.value.replace(/[^0-9.]/g, '');
+            taxInput.value = rawTaxString;
+            const rawTaxPercent = parseFloat(rawTaxString) || 0;
 
             balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance) : '';
             spendInput.value = spendInput.value ? formatRupiahValue(rawSpend) : '';
-            taxInput.value = taxInput.value ? formatRupiahValue(rawTax) : '';
 
             localStorage.setItem(`balance_${safeId}`, rawBalance ? rawBalance : '');
             localStorage.setItem(`spend_${safeId}`, rawSpend ? rawSpend : '');
-            localStorage.setItem(`tax_${safeId}`, rawTax ? rawTax : '');
+            localStorage.setItem(`tax_${safeId}`, rawTaxString);
 
-            calculateDays(safeId, rawBalance, rawSpend, rawTax);
+            calculateDays(safeId, rawBalance, rawSpend, rawTaxPercent);
         }
 
-        // Fungsi Hitung Otomatis
-        function calculateDays(safeId, balance, spend, tax) {
+        function calculateDays(safeId, balance, spend, taxPercent) {
             const totalCell = document.getElementById(`total_spend_${safeId}`);
             const resultCell = document.getElementById(`result_${safeId}`);
 
-            // Total Potongan Harian = Spend Iklan + Nominal PPN Manual
-            const totalDailyCut = spend + tax;
-
-            if (totalDailyCut <= 0) {
+            if (spend <= 0) {
                 totalCell.innerText = "-";
                 resultCell.innerText = "-";
                 resultCell.className = "py-3 px-3 text-center font-bold text-gray-500";
                 return;
             }
 
-            // Tampilkan total biaya pemotongan harian
+            // Hitung Rupiah dari persentase PPN
+            const taxNominal = spend * (taxPercent / 100);
+            
+            // Total Potongan Harian = Spend Iklan + PPN
+            const totalDailyCut = Math.round(spend + taxNominal);
+
             totalCell.innerText = formatRupiahValue(totalDailyCut);
 
-            // Hitung estimasi hari (Saldo dibagi Total Potongan)
             const daysLeft = balance / totalDailyCut;
             
-            // Logika indikator: <= 2 (Segera Isi), 2-3 (Hati-hati), >3 (Aman)
             if (daysLeft <= 2.0) {
                 resultCell.innerHTML = `<span class="bg-red-900/40 text-red-400 border border-red-500/30 px-2 py-1 rounded-md animate-pulse whitespace-nowrap">${daysLeft.toFixed(1)} Hari 🚨</span>`;
             } else if (daysLeft > 2.0 && daysLeft <= 3.0) {
@@ -243,12 +240,12 @@
         // ================= FUNGSI SISTEM UTAMA ================= //
 
         function downloadReport() {
-            const element = document.getElementById('report-container'); // Capture seluruh card container
+            const element = document.getElementById('report-container');
             
             modernScreenshot.domToPng(element, {
                 quality: 1,
                 scale: 2,
-                backgroundColor: '#0f172a' // Memastikan warna background solid saat di-capture
+                backgroundColor: '#0f172a' 
             })
             .then(dataUrl => {
                 const link = document.createElement('a');
@@ -270,7 +267,7 @@
                         
                         document.getElementById(`balance_${safeId}`).value = '';
                         document.getElementById(`spend_${safeId}`).value = '';
-                        document.getElementById(`tax_${safeId}`).value = '';
+                        document.getElementById(`tax_${safeId}`).value = '11'; // Kembalikan ke default 11%
                         
                         document.getElementById(`total_spend_${safeId}`).innerText = '-';
                         document.getElementById(`result_${safeId}`).innerHTML = '-';
@@ -278,7 +275,7 @@
                         
                         localStorage.removeItem(`balance_${safeId}`);
                         localStorage.removeItem(`spend_${safeId}`);
-                        localStorage.removeItem(`tax_${safeId}`);
+                        localStorage.setItem(`tax_${safeId}`, '11');
                     });
                 });
             }
