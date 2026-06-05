@@ -6,101 +6,171 @@
     <title>Dashboard Pantau Saldo Iklan</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/modern-screenshot"></script>
+    <style>
+        /* Sembunyikan panah atas-bawah di input number browser */
+        input[type="text"] { font-variant-numeric: tabular-nums; }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
+<body class="bg-gradient-to-br from-gray-900 via-slate-900 to-gray-800 text-gray-100 min-h-screen p-4 md:p-8 font-sans">
 
     <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-8 gap-4 bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50 shadow-lg backdrop-blur-sm">
             <div>
-                <h1 class="text-3xl font-bold text-blue-400">📊 Ads Balance Monitor</h1>
-                <p class="text-gray-400 text-sm mt-1">Pantau sisa saldo dan estimasi umur iklan agar tidak kecolongan off.</p>
+                <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight">
+                    📊 Ads Balance Monitor
+                </h1>
+                <p class="text-gray-400 text-sm mt-2">Pantau sisa saldo dan estimasi umur iklan. <br/>Kalkulasi berdasarkan: <code class="bg-gray-900 text-amber-300 px-2 py-0.5 rounded text-xs">Saldo / (Spend + PPN Manual)</code></p>
+                <div class="mt-3 flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <span>📅 <span id="current-date"></span></span>
+                </div>
             </div>
-            <div class="flex gap-3">
-                <button onclick="downloadReport()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2px px-4 rounded-lg shadow transition duration-200 flex items-center gap-2 cursor-pointer h-11">
-                    💾 Download Gambar
+            <div class="flex flex-wrap gap-3">
+                <button onclick="downloadReport()" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold py-2 px-5 rounded-xl shadow-lg shadow-green-900/20 transition-all duration-300 flex items-center gap-2 cursor-pointer border border-green-400/20">
+                    📸 Download Report
                 </button>
-                <button onclick="clearAllData()" class="bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 font-semibold py-2px px-4 rounded-lg transition duration-200 cursor-pointer h-11">
-                    🗑️ Hapus Semua Data
+                <button onclick="clearAllData()" class="bg-gray-800 hover:bg-red-900/40 text-red-400 hover:text-red-300 border border-gray-700 hover:border-red-500/50 font-semibold py-2 px-5 rounded-xl transition-all duration-300 cursor-pointer flex items-center gap-2">
+                    🗑️ Reset Data
                 </button>
             </div>
         </div>
 
-        <div id="report-table" class="bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700 p-4 md:p-6">
-            <div class="mb-4 flex justify-between items-center border-b border-gray-700 pb-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Laporan Saldo & Estimasi Iklan (Termasuk PPN 11%)</span>
-                <span id="current-date" class="text-sm text-gray-400 font-mono"></span>
+        <div id="report-container" class="space-y-6 bg-[#0f172a] p-6 rounded-2xl border border-slate-800/50">
             </div>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-gray-700 text-gray-400 text-sm">
-                            <th class="pb-3 pt-2 font-semibold">Nama Akun Iklan</th>
-                            <th class="pb-3 pt-2 font-semibold w-44 text-right">Sisa Saldo</th>
-                            <th class="pb-3 pt-2 font-semibold w-44 text-right">Spend Kemarin</th>
-                            <th class="pb-3 pt-2 font-semibold w-44 text-right text-amber-400">Spend + PPN 11%</th>
-                            <th class="pb-3 pt-2 font-semibold text-center w-48">Estimasi Sisa Hari</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ads-table-body" class="divide-y divide-gray-700/50">
-                        </tbody>
-                </table>
-            </div>
-        </div>
+        
     </div>
 
     <script>
-        // Daftar akun iklan
-        const accountNames = [
-            "NISA TESTER",
-            "KANTOR MJO 1372 (RAHASIA CANTIK)",
-            "KANTOR MJO 0696 (DAILY CK)",
-            "KANTOR MJO 0682 (FINDURFAV)",
-            "AKUN IKLAN BARU (DAPUR)",
-            "KANTOR MJO 0435 (DAPUR)",
-            "AKUN IKLAN EVAN (RACOEN)",
-            "KANTOR MJO 0434 (RACOEN)"
+        // Data Struktur Grup Akun Iklan
+        const accountGroups = [
+            {
+                id: "group1",
+                title: "Tim Nisa, Daily & Findurfav",
+                theme: "blue", // Aksen warna tabel
+                accounts: [
+                    "NISA TESTER",
+                    "KANTOR MJO 1372 (RAHASIA CANTIK)",
+                    "KANTOR MJO 0696 (DAILY CK)",
+                    "KANTOR MJO 0682 (FINDURFAV)"
+                ]
+            },
+            {
+                id: "group2",
+                title: "Tim Dapur",
+                theme: "amber",
+                accounts: [
+                    "AKUN IKLAN BARU (DAPUR)",
+                    "KANTOR MJO 0435 (DAPUR)"
+                ]
+            },
+            {
+                id: "group3",
+                title: "Tim Evan, Racoen & Shopping",
+                theme: "purple",
+                accounts: [
+                    "AKUN IKLAN EVAN (RACOEN)",
+                    "KANTOR MJO 0434 (RACOEN)",
+                    "KANTOR MJO-1478 (EASY SHOPPING)"
+                ]
+            }
         ];
 
-        // Tampilkan tanggal hari ini
+        // Format Tanggal
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', options);
 
-        // Inisialisasi & Load data dari LocalStorage
-        const tableBody = document.getElementById('ads-table-body');
-        
-        accountNames.forEach((name, index) => {
-            const savedBalance = localStorage.getItem(`balance_${index}`) || '';
-            const savedSpend = localStorage.getItem(`spend_${index}`) || '';
+        // Fungsi membuat ID aman dari nama akun (menghilangkan spasi dan karakter khusus)
+        function getSafeId(name) {
+            return name.replace(/[^a-zA-Z0-9]/g, '_');
+        }
 
-            const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
-            const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
+        const container = document.getElementById('report-container');
 
-            const row = document.createElement('tr');
-            row.className = "hover:bg-gray-700/30 transition-colors";
-            row.innerHTML = `
-                <td class="py-4 pr-3 font-medium text-gray-200">${name}</td>
-                <td class="py-4 pr-3">
-                    <input type="text" id="balance_${index}" value="${formattedBalance}" oninput="handleInput(${index})" placeholder="Rp 0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
-                </td>
-                <td class="py-4 pr-3">
-                    <input type="text" id="spend_${index}" value="${formattedSpend}" oninput="handleInput(${index})" placeholder="Rp 0" 
-                        class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-white focus:outline-none focus:border-blue-500 font-mono text-sm text-right">
-                </td>
-                <td class="py-4 pr-3 text-right font-mono text-sm text-amber-400 font-semibold" id="tax_spend_${index}">-</td>
-                <td class="py-4 text-center font-bold text-sm" id="result_${index}">-</td>
-            `;
-            tableBody.appendChild(row);
-            
-            if(savedBalance && savedSpend) {
-                calculateDays(index, parseFloat(savedBalance), parseFloat(savedSpend));
-            }
-        });
+        // Fungsi Render Tabel Berdasarkan Grup
+        function renderTables() {
+            accountGroups.forEach(group => {
+                // Tentukan warna aksen berdasarkan theme
+                let headerColor, borderColor, icon;
+                if(group.theme === 'blue') { headerColor = 'text-blue-400'; borderColor = 'border-blue-500/30'; icon = '🔹'; }
+                else if(group.theme === 'amber') { headerColor = 'text-amber-400'; borderColor = 'border-amber-500/30'; icon = '🔸'; }
+                else { headerColor = 'text-purple-400'; borderColor = 'border-purple-500/30'; icon = '🔮'; }
 
-        // Fungsi memformat angka murni menjadi format Rupiah string (Accounting Style)
+                // Buat Card HTML untuk tiap grup
+                const groupHTML = `
+                    <div class="bg-gray-800/80 rounded-xl overflow-hidden border border-gray-700/60 shadow-md">
+                        <div class="bg-gray-800 px-5 py-3 border-b border-gray-700/80 flex items-center gap-2">
+                            <span class="text-lg">${icon}</span>
+                            <h2 class="font-bold text-lg ${headerColor} uppercase tracking-wide">${group.title}</h2>
+                        </div>
+                        <div class="overflow-x-auto p-2">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-gray-700/50 text-gray-400 text-xs uppercase tracking-wider">
+                                        <th class="pb-2 pt-2 px-3 font-semibold">Nama Akun</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Saldo Saat Ini</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Spend Iklan</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Biaya PPN</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right ${headerColor}">Total Harian</th>
+                                        <th class="pb-2 pt-2 px-3 font-semibold text-center w-48">Estimasi Sisa</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-700/30" id="tbody_${group.id}">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', groupHTML);
+
+                const tbody = document.getElementById(`tbody_${group.id}`);
+
+                group.accounts.forEach(accountName => {
+                    const safeId = getSafeId(accountName);
+                    
+                    // Ambil data tersimpan (jika ada)
+                    const savedBalance = localStorage.getItem(`balance_${safeId}`) || '';
+                    const savedSpend = localStorage.getItem(`spend_${safeId}`) || '';
+                    const savedTax = localStorage.getItem(`tax_${safeId}`) || ''; // Input PPN Baru
+
+                    const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
+                    const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
+                    const formattedTax = savedTax ? formatRupiahValue(savedTax) : '';
+
+                    const rowHTML = `
+                        <tr class="hover:bg-gray-700/20 transition-colors group">
+                            <td class="py-3 px-3 font-medium text-gray-200 text-sm w-1/4">${accountName}</td>
+                            <td class="py-3 px-2">
+                                <input type="text" id="balance_${safeId}" value="${formattedBalance}" oninput="handleInput('${safeId}')" placeholder="Rp 0" 
+                                    class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
+                            </td>
+                            <td class="py-3 px-2">
+                                <input type="text" id="spend_${safeId}" value="${formattedSpend}" oninput="handleInput('${safeId}')" placeholder="Rp 0" 
+                                    class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
+                            </td>
+                            <td class="py-3 px-2">
+                                <input type="text" id="tax_${safeId}" value="${formattedTax}" oninput="handleInput('${safeId}')" placeholder="Rp 0" 
+                                    class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
+                            </td>
+                            <td class="py-3 px-2 text-right font-mono text-sm font-semibold text-gray-300" id="total_spend_${safeId}">-</td>
+                            <td class="py-3 px-3 text-center font-bold text-sm" id="result_${safeId}">-</td>
+                        </tr>
+                    `;
+                    tbody.insertAdjacentHTML('beforeend', rowHTML);
+
+                    // Kalkulasi awal saat halaman dimuat
+                    if(savedBalance || savedSpend || savedTax) {
+                        calculateDays(safeId, parseFloat(savedBalance||0), parseFloat(savedSpend||0), parseFloat(savedTax||0));
+                    }
+                });
+            });
+        }
+
+        // Panggil fungsi render untuk menggambar struktur HTML
+        renderTables();
+
+        // ================= FUNGSI FORMAT & KALKULASI ================= //
+
         function formatRupiahValue(value) {
-            const numberString = value.replace(/[^,\d]/g, '').toString();
+            const numberString = value.toString().replace(/[^,\d]/g, '');
             const split = numberString.split(',');
             const sisa = split[0].length % 3;
             let rupiah = split[0].substr(0, sisa);
@@ -110,95 +180,106 @@
                 const separator = sisa ? '.' : '';
                 rupiah += separator + ribuan.join('.');
             }
-
             rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
             return rupiah ? 'Rp ' + rupiah : '';
         }
 
-        // Fungsi mengubah string Rupiah kembali ke Angka Murni untuk kalkulasi
         function cleanToNumber(value) {
-            return parseFloat(value.replace(/[^0-9]/g, '')) || 0;
+            return parseFloat(value.toString().replace(/[^0-9]/g, '')) || 0;
         }
 
-        // Menghandle input ketikan secara real-time
-        function handleInput(index) {
-            const balanceInput = document.getElementById(`balance_${index}`);
-            const spendInput = document.getElementById(`spend_${index}`);
+        // Menangani input ketikan dan menyimpan ke LocalStorage
+        function handleInput(safeId) {
+            const balanceInput = document.getElementById(`balance_${safeId}`);
+            const spendInput = document.getElementById(`spend_${safeId}`);
+            const taxInput = document.getElementById(`tax_${safeId}`); // Input PPN
 
             const rawBalance = cleanToNumber(balanceInput.value);
             const rawSpend = cleanToNumber(spendInput.value);
+            const rawTax = cleanToNumber(taxInput.value);
 
-            balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance.toString()) : '';
-            spendInput.value = spendInput.value ? formatRupiahValue(rawSpend.toString()) : '';
+            balanceInput.value = balanceInput.value ? formatRupiahValue(rawBalance) : '';
+            spendInput.value = spendInput.value ? formatRupiahValue(rawSpend) : '';
+            taxInput.value = taxInput.value ? formatRupiahValue(rawTax) : '';
 
-            localStorage.setItem(`balance_${index}`, rawBalance ? rawBalance : '');
-            localStorage.setItem(`spend_${index}`, rawSpend ? rawSpend : '');
+            localStorage.setItem(`balance_${safeId}`, rawBalance ? rawBalance : '');
+            localStorage.setItem(`spend_${safeId}`, rawSpend ? rawSpend : '');
+            localStorage.setItem(`tax_${safeId}`, rawTax ? rawTax : '');
 
-            calculateDays(index, rawBalance, rawSpend);
+            calculateDays(safeId, rawBalance, rawSpend, rawTax);
         }
 
-        // Fungsi Hitung Otomatis PPN 11% & Aturan Baru Estimasi Hari (<2, 2-3, >3)
-        function calculateDays(index, balance, spend) {
-            const taxSpendCell = document.getElementById(`tax_spend_${index}`);
-            const resultCell = document.getElementById(`result_${index}`);
+        // Fungsi Hitung Otomatis
+        function calculateDays(safeId, balance, spend, tax) {
+            const totalCell = document.getElementById(`total_spend_${safeId}`);
+            const resultCell = document.getElementById(`result_${safeId}`);
 
-            if (spend <= 0) {
-                taxSpendCell.innerText = "-";
+            // Total Potongan Harian = Spend Iklan + Nominal PPN Manual
+            const totalDailyCut = spend + tax;
+
+            if (totalDailyCut <= 0) {
+                totalCell.innerText = "-";
                 resultCell.innerText = "-";
-                resultCell.className = "py-4 text-center font-bold text-gray-400";
+                resultCell.className = "py-3 px-3 text-center font-bold text-gray-500";
                 return;
             }
 
-            const totalSpendWithTax = Math.round(spend * 1.11);
-            taxSpendCell.innerText = formatRupiahValue(totalSpendWithTax.toString());
+            // Tampilkan total biaya pemotongan harian
+            totalCell.innerText = formatRupiahValue(totalDailyCut);
 
-            const daysLeft = balance / totalSpendWithTax;
+            // Hitung estimasi hari (Saldo dibagi Total Potongan)
+            const daysLeft = balance / totalDailyCut;
             
-            // Logika indikator baru yang diminta
+            // Logika indikator: <= 2 (Segera Isi), 2-3 (Hati-hati), >3 (Aman)
             if (daysLeft <= 2.0) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Segera Isi! 🚨)`;
-                resultCell.className = "py-4 text-center font-bold text-red-400 animate-pulse";
+                resultCell.innerHTML = `<span class="bg-red-900/40 text-red-400 border border-red-500/30 px-2 py-1 rounded-md animate-pulse whitespace-nowrap">${daysLeft.toFixed(1)} Hari 🚨</span>`;
             } else if (daysLeft > 2.0 && daysLeft <= 3.0) {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Hati-Hati ⚠️)`;
-                resultCell.className = "py-4 text-center font-bold text-yellow-400";
+                resultCell.innerHTML = `<span class="bg-yellow-900/40 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-md whitespace-nowrap">${daysLeft.toFixed(1)} Hari ⚠️</span>`;
             } else {
-                resultCell.innerText = `${daysLeft.toFixed(1)} Hari (Aman ✅)`;
-                resultCell.className = "py-4 text-center font-bold text-green-400";
+                resultCell.innerHTML = `<span class="bg-green-900/40 text-green-400 border border-green-500/30 px-2 py-1 rounded-md whitespace-nowrap">${daysLeft.toFixed(1)} Hari ✅</span>`;
             }
         }
 
-        // Fungsi Download Gambar Menggunakan Library Baru (Anti Gagal & Ringan)
+        // ================= FUNGSI SISTEM UTAMA ================= //
+
         function downloadReport() {
-            const element = document.getElementById('report-table');
+            const element = document.getElementById('report-container'); // Capture seluruh card container
             
             modernScreenshot.domToPng(element, {
-                quality: 0.95,
-                scale: 2
+                quality: 1,
+                scale: 2,
+                backgroundColor: '#0f172a' // Memastikan warna background solid saat di-capture
             })
             .then(dataUrl => {
                 const link = document.createElement('a');
-                link.download = `Laporan_Saldo_Iklan_${new Date().toISOString().slice(0,10)}.png`;
+                link.download = `Report_Iklan_${new Date().toISOString().slice(0,10)}.png`;
                 link.href = dataUrl;
                 link.click();
             })
             .catch(err => {
                 console.error("Gagal mendownload gambar:", err);
-                alert("Ada gangguan eksternal pada browser. Silakan coba kembali beberapa saat lagi.");
+                alert("Ada gangguan saat mengambil gambar layar. Coba lagi.");
             });
         }
 
-        // Fungsi Hapus Semua Data
         function clearAllData() {
-            if (confirm("Apakah kamu yakin ingin menghapus semua data input saldo dan spend?")) {
-                accountNames.forEach((_, index) => {
-                    document.getElementById(`balance_${index}`).value = '';
-                    document.getElementById(`spend_${index}`).value = '';
-                    document.getElementById(`tax_spend_${index}`).innerText = '-';
-                    document.getElementById(`result_${index}`).innerText = '-';
-                    document.getElementById(`result_${index}`).className = "py-4 text-center font-bold text-gray-400";
-                    
-                    localStorage.removeItem(`balance_${index}`);
-                    localStorage.removeItem(`spend_${index}`);
+            if (confirm("Apakah kamu yakin ingin mereset seluruh data (Saldo, Spend, dan PPN)?")) {
+                accountGroups.forEach(group => {
+                    group.accounts.forEach(accountName => {
+                        const safeId = getSafeId(accountName);
+                        
+                        document.getElementById(`balance_${safeId}`).value = '';
+                        document.getElementById(`spend_${safeId}`).value = '';
+                        document.getElementById(`tax_${safeId}`).value = '';
+                        
+                        document.getElementById(`total_spend_${safeId}`).innerText = '-';
+                        document.getElementById(`result_${safeId}`).innerHTML = '-';
+                        document.getElementById(`result_${safeId}`).className = "py-3 px-3 text-center font-bold text-gray-500";
+                        
+                        localStorage.removeItem(`balance_${safeId}`);
+                        localStorage.removeItem(`spend_${safeId}`);
+                        localStorage.removeItem(`tax_${safeId}`);
+                    });
                 });
             }
         }
