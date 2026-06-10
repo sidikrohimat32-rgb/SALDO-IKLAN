@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pantau Saldo Iklan</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/modern-screenshot"></script>
     <style>
         /* Sembunyikan panah atas-bawah di input number browser */
@@ -35,7 +35,7 @@
         </div>
 
         <div id="report-container" class="space-y-6 bg-[#0f172a] p-6 rounded-2xl border border-slate-800/50">
-            </div>
+        </div>
         
     </div>
 
@@ -102,12 +102,13 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="border-b border-gray-700/50 text-gray-400 text-xs uppercase tracking-wider">
-                                        <th class="pb-2 pt-2 px-3 font-semibold">Nama Akun</th>
-                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Saldo Saat Ini</th>
-                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right">Spend Iklan</th>
-                                        <th class="pb-2 pt-2 px-2 font-semibold w-24 text-center">PPN (%)</th>
-                                        <th class="pb-2 pt-2 px-2 font-semibold w-36 text-right ${headerColor}">Total Harian</th>
-                                        <th class="pb-2 pt-2 px-3 font-semibold text-center w-48">Estimasi Sisa</th>
+                                        <th class="pb-2 pt-2 px-3 font-semibold min-w-[200px]">Nama Akun</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold min-w-[120px] text-center">Batas Sewa</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold min-w-[150px] text-right">Saldo Saat Ini</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold min-w-[150px] text-right">Spend Iklan</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold min-w-[80px] text-center">PPN (%)</th>
+                                        <th class="pb-2 pt-2 px-2 font-semibold min-w-[150px] text-right ${headerColor}">Total Harian</th>
+                                        <th class="pb-2 pt-2 px-3 font-semibold text-center min-w-[150px]">Estimasi Sisa</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-700/30" id="tbody_${group.id}">
@@ -126,6 +127,9 @@
                     const savedBalance = localStorage.getItem(`balance_${safeId}`) || '';
                     const savedSpend = localStorage.getItem(`spend_${safeId}`) || '';
                     const savedTax = localStorage.getItem(`tax_${safeId}`) || '11'; // Default PPN 11%
+                    const savedRent = localStorage.getItem(`rent_${safeId}`) || '';
+                    
+                    const isMJO = accountName.includes("MJO");
 
                     const formattedBalance = savedBalance ? formatRupiahValue(savedBalance) : '';
                     const formattedSpend = savedSpend ? formatRupiahValue(savedSpend) : '';
@@ -133,6 +137,15 @@
                     const rowHTML = `
                         <tr class="hover:bg-gray-700/20 transition-colors group">
                             <td class="py-3 px-3 font-medium text-gray-200 text-sm w-1/4">${accountName}</td>
+                            <td class="py-3 px-2">
+                                ${isMJO ? `
+                                <div class="flex flex-col gap-1 items-center">
+                                    <input type="date" id="rent_${safeId}" value="${savedRent}" onchange="handleRentInput('${safeId}')" 
+                                        class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-1 py-1 text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs shadow-inner cursor-pointer" style="color-scheme: dark;">
+                                    <span id="rent_status_${safeId}" class="text-[10px] font-bold text-center w-full mt-0.5">-</span>
+                                </div>
+                                ` : `<div class="text-center text-gray-600 text-xs">-</div>`}
+                            </td>
                             <td class="py-3 px-2">
                                 <input type="text" id="balance_${safeId}" value="${formattedBalance}" oninput="handleInput('${safeId}')" placeholder="Rp 0" 
                                     class="w-full bg-gray-900 border border-gray-700/80 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm text-right shadow-inner transition-all placeholder-gray-600">
@@ -156,6 +169,10 @@
 
                     if(savedBalance || savedSpend || savedTax) {
                         calculateDays(safeId, cleanToNumber(savedBalance), cleanToNumber(savedSpend), parseFloat(savedTax) || 0);
+                    }
+                    
+                    if(isMJO) {
+                        calculateRentDays(safeId, savedRent);
                     }
                 });
             });
@@ -229,11 +246,49 @@
             const daysLeft = balance / totalDailyCut;
             
             if (daysLeft <= 2.0) {
-                resultCell.innerHTML = `<span class="bg-red-900/40 text-red-400 border border-red-500/30 px-2 py-1 rounded-md animate-pulse whitespace-nowrap">${daysLeft.toFixed(1)} Hari 🚨</span>`;
+                resultCell.innerHTML = `<span class="bg-red-900/40 text-red-400 border border-red-500/30 px-2 py-1 rounded-md animate-pulse whitespace-nowrap inline-block">${daysLeft.toFixed(1)} Hari 🚨</span>`;
             } else if (daysLeft > 2.0 && daysLeft <= 3.0) {
-                resultCell.innerHTML = `<span class="bg-yellow-900/40 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-md whitespace-nowrap">${daysLeft.toFixed(1)} Hari ⚠️</span>`;
+                resultCell.innerHTML = `<span class="bg-yellow-900/40 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-md whitespace-nowrap inline-block">${daysLeft.toFixed(1)} Hari ⚠️</span>`;
             } else {
-                resultCell.innerHTML = `<span class="bg-green-900/40 text-green-400 border border-green-500/30 px-2 py-1 rounded-md whitespace-nowrap">${daysLeft.toFixed(1)} Hari ✅</span>`;
+                resultCell.innerHTML = `<span class="bg-green-900/40 text-green-400 border border-green-500/30 px-2 py-1 rounded-md whitespace-nowrap inline-block">${daysLeft.toFixed(1)} Hari ✅</span>`;
+            }
+        }
+
+        function handleRentInput(safeId) {
+            const rentInput = document.getElementById(`rent_${safeId}`);
+            const dateVal = rentInput.value;
+            localStorage.setItem(`rent_${safeId}`, dateVal);
+            calculateRentDays(safeId, dateVal);
+        }
+
+        function calculateRentDays(safeId, dateStr) {
+            const statusSpan = document.getElementById(`rent_status_${safeId}`);
+            if (!statusSpan) return;
+            
+            if (!dateStr) {
+                statusSpan.innerHTML = "-";
+                return;
+            }
+
+            // Ambil waktu dari input YYYY-MM-DD
+            const parts = dateStr.split('-');
+            const rentDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            rentDate.setHours(0,0,0,0);
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const diffTime = rentDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                statusSpan.innerHTML = `<span class="text-red-400 bg-red-900/40 px-1.5 py-0.5 rounded border border-red-500/30 whitespace-nowrap">Expired ${Math.abs(diffDays)} hr lalu</span>`;
+            } else if (diffDays === 0) {
+                statusSpan.innerHTML = `<span class="text-yellow-400 bg-yellow-900/40 px-1.5 py-0.5 rounded border border-yellow-500/30 animate-pulse whitespace-nowrap">Hari Ini!</span>`;
+            } else if (diffDays <= 3) {
+                statusSpan.innerHTML = `<span class="text-yellow-400 bg-yellow-900/40 px-1.5 py-0.5 rounded border border-yellow-500/30 whitespace-nowrap">${diffDays} Hari Lagi ⚠️</span>`;
+            } else {
+                statusSpan.innerHTML = `<span class="text-green-400 bg-green-900/40 px-1.5 py-0.5 rounded border border-green-500/30 whitespace-nowrap">${diffDays} Hari Lagi</span>`;
             }
         }
 
@@ -272,6 +327,12 @@
                         document.getElementById(`total_spend_${safeId}`).innerText = '-';
                         document.getElementById(`result_${safeId}`).innerHTML = '-';
                         document.getElementById(`result_${safeId}`).className = "py-3 px-3 text-center font-bold text-gray-500";
+                        
+                        if (document.getElementById(`rent_${safeId}`)) {
+                            document.getElementById(`rent_${safeId}`).value = '';
+                            document.getElementById(`rent_status_${safeId}`).innerHTML = '-';
+                            localStorage.removeItem(`rent_${safeId}`);
+                        }
                         
                         localStorage.removeItem(`balance_${safeId}`);
                         localStorage.removeItem(`spend_${safeId}`);
