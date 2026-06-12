@@ -334,12 +334,6 @@
                         document.getElementById(`result_${safeId}`).innerHTML = '-';
                         document.getElementById(`result_${safeId}`).className = "py-3 px-3 text-center font-bold text-gray-500";
                         
-                        if (document.getElementById(`rent_${safeId}`)) {
-                            document.getElementById(`rent_${safeId}`).value = '';
-                            document.getElementById(`rent_status_${safeId}`).innerHTML = '-';
-                            localStorage.removeItem(`rent_${safeId}`);
-                        }
-                        
                         localStorage.removeItem(`balance_${safeId}`);
                         localStorage.removeItem(`spend_${safeId}`);
                         localStorage.setItem(`tax_${safeId}`, '11');
